@@ -47,6 +47,30 @@ A robust, containerized webhook testing and debugging solution with real-time di
 3. Access the UI:
    Open your browser and navigate to [http://localhost:8080](http://localhost:8080)
 
+### Viewing Logs
+
+#### Application Logs
+
+To view logs from the Docker container:
+
+```bash
+# View logs with follow option
+docker-compose logs -f
+
+# View only the last 100 lines
+docker-compose logs --tail=100
+```
+
+#### Webhook Logs
+
+There are multiple ways to view webhook logs:
+
+1. **Web Interface**: Access the modular logs view at [http://localhost:8080/frontend/logs-modular.html](http://localhost:8080/frontend/logs-modular.html)
+
+2. **Data Files**: Webhook data is stored in the `./data` directory with Arrow format and JSON snapshots.
+
+3. **Real-time Monitoring**: The WebSocket connection provides real-time updates as webhooks arrive.
+
 ### Testing Webhooks
 
 Once the application is running, you can send webhook requests to any port above 1024:
