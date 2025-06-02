@@ -14,16 +14,16 @@ use crate::storage::ArrowStorage;
 // WebSocket handler for real-time updates
 pub struct WebSocketHandler {
     sender: Sender<String>,
-    storage: Arc<ArrowStorage>,
+    // storage field removed as it was never read
     clients: Mutex<HashSet<String>>,
 }
 
 impl WebSocketHandler {
-    pub fn new(storage: Arc<ArrowStorage>) -> Self {
+    pub fn new(_storage: Arc<ArrowStorage>) -> Self {
         let (sender, _) = broadcast::channel(100); // Buffer size for messages
         Self {
             sender,
-            storage,
+            // storage field removed as it was never read
             clients: Mutex::new(HashSet::new()),
         }
     }
@@ -82,7 +82,7 @@ async fn handle_socket(
     let (mut sender, mut receiver) = socket.split();
     
     // Generate a unique client ID
-    let client_id = format!("client_{}", hex::encode(&rand::random::<[u8; 8]>()));
+    let client_id = format!("client_{}", hex::encode(rand::random::<[u8; 8]>()));
     
     // Register the client
     state.ws_handler.register_client(client_id.clone());

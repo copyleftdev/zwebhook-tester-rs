@@ -1,9 +1,8 @@
 use std::net::SocketAddr;
 use std::os::unix::io::AsRawFd;
 use std::sync::Arc;
-use axum::extract::{ConnectInfo, State};
-use axum::routing::{get, post, put, patch, delete, get_service};
-use axum::{Router, Server};
+use axum::routing::{get, get_service};
+use axum::Router;
 use anyhow::Result;
 use libc::{sockaddr_in, SOL_IP, SO_ORIGINAL_DST};
 use socket2::Socket;
