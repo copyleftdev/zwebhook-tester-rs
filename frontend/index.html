@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZWebHook-Tester</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Basic reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        /* Utility classes */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        /* Tailwind-like utilities */
+        .bg-gray-100 { background-color: #f3f4f6; }
+        .bg-gray-200 { background-color: #e5e7eb; }
+        .bg-gray-500 { background-color: #6b7280; }
+        .bg-gray-50 { background-color: #f9fafb; }
+        .bg-gray-800 { background-color: #1f2937; }
+        .bg-white { background-color: white; }
+        .bg-blue-500 { background-color: #3b82f6; }
+        .bg-blue-600 { background-color: #2563eb; }
+        .bg-blue-100 { background-color: #dbeafe; }
+        .bg-blue-700 { background-color: #1d4ed8; }
+        .bg-blue-800 { background-color: #1e40af; }
+        .bg-green-100 { background-color: #d1fae5; }
+        .bg-green-500 { background-color: #10b981; }
+        .bg-red-100 { background-color: #fee2e2; }
+        .bg-red-500 { background-color: #ef4444; }
+        .bg-purple-100 { background-color: #ede9fe; }
+        .bg-yellow-100 { background-color: #fef3c7; }
+        .bg-yellow-500 { background-color: #f59e0b; }
+        
+        .text-white { color: white; }
+        .text-gray-400 { color: #9ca3af; }
+        .text-gray-500 { color: #6b7280; }
+        .text-gray-600 { color: #4b5563; }
+        .text-gray-700 { color: #374151; }
+        .text-gray-800 { color: #1f2937; }
+        .text-blue-800 { color: #1e40af; }
+        .text-green-800 { color: #065f46; }
+        .text-red-800 { color: #991b1b; }
+        .text-purple-800 { color: #5b21b6; }
+        .text-yellow-800 { color: #92400e; }
+        
+        .border { border-width: 1px; border-style: solid; }
+        .border-gray-200 { border-color: #e5e7eb; }
+        .border-blue-200 { border-color: #bfdbfe; }
+        .border-green-200 { border-color: #a7f3d0; }
+        .border-red-200 { border-color: #fecaca; }
+        .border-purple-200 { border-color: #ddd6fe; }
+        .border-yellow-200 { border-color: #fde68a; }
+        
+        .rounded { border-radius: 0.25rem; }
+        .rounded-lg { border-radius: 0.5rem; }
+        
+        .shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        
+        .font-semibold { font-weight: 600; }
+        .font-bold { font-weight: 700; }
+        .font-medium { font-weight: 500; }
+        .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+        
+        .p-4 { padding: 1rem; }
+        .p-3 { padding: 0.75rem; }
+        .p-2 { padding: 0.5rem; }
+        .p-1 { padding: 0.25rem; }
+        .px-4 { padding-left: 1rem; padding-right: 1rem; }
+        .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+        .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+        .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+        .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+        .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+        .py-1\.5 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
+        .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+        .py-8 { padding-top: 2rem; padding-bottom: 2rem; }
+        .pl-8 { padding-left: 2rem; }
+        
+        .mb-4 { margin-bottom: 1rem; }
+        .mb-3 { margin-bottom: 0.75rem; }
+        .mb-2 { margin-bottom: 0.5rem; }
+        .mb-1 { margin-bottom: 0.25rem; }
+        .ml-2 { margin-left: 0.5rem; }
+        .ml-1 { margin-left: 0.25rem; }
+        .mr-1 { margin-right: 0.25rem; }
+        .mt-2 { margin-top: 0.5rem; }
+        
+        .text-sm { font-size: 0.875rem; }
+        .text-xs { font-size: 0.75rem; }
+        .text-xl { font-size: 1.25rem; }
+        .text-2xl { font-size: 1.5rem; }
+        
+        .flex { display: flex; }
+        .justify-between { justify-content: space-between; }
+        .items-center { align-items: center; }
+        .items-start { align-items: flex-start; }
+        .gap-1 { gap: 0.25rem; }
+        .gap-2 { gap: 0.5rem; }
+        .gap-4 { gap: 1rem; }
+        
+        .hover\:bg-blue-600:hover { background-color: #2563eb; }
+        .hover\:bg-gray-200:hover { background-color: #e5e7eb; }
+        .hover\:bg-gray-300:hover { background-color: #d1d5db; }
+        
+        .divide-y > * + * { border-top: 1px solid #e5e7eb; }
+        .divide-gray-200 > * + * { border-top-color: #e5e7eb; }
+        
+        .min-h-screen { min-height: 100vh; }
+        
+        .opacity-90 { opacity: 0.9; }
+        
+        .inline-block { display: inline-block; }
+        
+        .relative { position: relative; }
+        .absolute { position: absolute; }
+        .sticky { position: sticky; }
+        .top-0 { top: 0; }
+        .left-3 { left: 0.75rem; }
+        .top-2\.5 { top: 0.625rem; }
+        .z-10 { z-index: 10; }
+        
+        .w-64 { width: 16rem; }
+        
+        .text-center { text-align: center; }
+        
+        /* Custom styles for the enhanced UI */
+        .webhook-entry {
+            transition: background-color 0.2s ease;
+        }
+        
+        .webhook-entry:hover {
+            background-color: #f9fafb;
+        }
+        
+        .webhook-entry .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .webhook-entry.expanded .collapsible-content {
+            max-height: 2000px;
+        }
+        
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #d1d5db;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: background-color 0.2s ease;
+            opacity: 0.7;
+        }
+        
+        .copy-btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            opacity: 1;
+        }
+        
+        .json-container {
+            position: relative;
+        }
+        
+        .json-container pre {
+            overflow-x: auto;
+            color: #e2e8f0;
+        }
+        
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #2563eb;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            z-index: 50;
+        }
+        
+        .notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        /* Prism.js theme overrides - Dark theme */
+        code[class*="language-"],
+        pre[class*="language-"] {
+            color: #f8fafc;
+            text-shadow: none;
+        }
+        
+        .token.property,
+        .token.tag,
+        .token.boolean,
+        .token.number,
+        .token.constant,
+        .token.symbol {
+            color: #38bdf8;
+        }
+        
+        .token.selector,
+        .token.attr-name,
+        .token.string,
+        .token.char,
+        .token.builtin {
+            color: #4ade80;
+        }
+        
+        .token.operator,
+        .token.entity,
+        .token.url,
+        .language-css .token.string,
+        .style .token.string {
+            color: #fb923c;
+            background: none;
+        }
+        
+        .token.atrule,
+        .token.attr-value,
+        .token.keyword {
+            color: #a78bfa;
+        }
+        
+        .token.function {
+            color: #60a5fa;
+        }
+        
+        .token.regex,
+        .token.important {
+            color: #f87171;
+        }
+        
+        .token.punctuation {
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <header class="bg-blue-600 text-white p-4 shadow-md sticky top-0 z-10">
+        <div class="container mx-auto">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold">ZWebHook-Tester</h1>
+                    <p class="text-sm opacity-90">Transparently capture and inspect webhook requests</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span id="connection-status" class="flex items-center gap-1 text-sm px-2 py-1 rounded bg-green-500">
+                        <i class="fas fa-circle text-xs"></i> Connected
+                    </span>
+                    <span id="request-counter" class="text-sm px-2 py-1 rounded bg-blue-700">0 requests</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto p-4">
+        <div class="bg-white rounded-lg shadow-md p-4 mb-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Webhook Logs</h2>
+                <div class="flex gap-2">
+                    <div class="relative">
+                        <input type="text" id="search-input" placeholder="Search logs..." class="border rounded px-3 py-2 text-sm w-64 pl-8">
+                        <i class="fas fa-search absolute left-3 top-2.5 text-gray-400"></i>
+                    </div>
+                    <select id="method-filter" class="border rounded px-3 py-2 text-sm">
+                        <option value="">All Methods</option>
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="PATCH">PATCH</option>
+                        <option value="DELETE">DELETE</option>
+                    </select>
+                    <a href="logs.html" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded flex items-center gap-1 text-sm">
+                        <i class="fas fa-history"></i> View Full Logs
+                    </a>
+                    <button id="clear-logs" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded flex items-center gap-1 text-sm">
+                        <i class="fas fa-trash"></i> Clear
+                    </button>
+                </div>
+            </div>
+            <div id="log-container" class="divide-y divide-gray-200">
+                <p class="text-gray-500 text-center py-8">Waiting for webhook requests...</p>
+            </div>
+        </div>
+    </div>
+    
+    <div id="notification" class="notification">Copied to clipboard!</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const logContainer = document.getElementById('log-container');
+            const searchInput = document.getElementById('search-input');
+            const methodFilter = document.getElementById('method-filter');
+            const clearLogsBtn = document.getElementById('clear-logs');
+            const requestCounter = document.getElementById('request-counter');
+            const connectionStatus = document.getElementById('connection-status');
+            let requestCount = 0;
+            let webhookEntries = [];
+            
+            // Function to show notification
+            function showNotification(message) {
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.classList.add('show');
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 2000);
+            }
+            
+            // Function to create a copy button
+            function createCopyButton(container, text) {
+                const btn = document.createElement('button');
+                btn.className = 'copy-btn';
+                btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+                btn.addEventListener('click', () => {
+                    navigator.clipboard.writeText(text).then(() => {
+                        showNotification('Copied to clipboard!');
+                    });
+                });
+                container.appendChild(btn);
+            }
+
+            // Function to format JSON for display
+            function formatJson(jsonData) {
+                try {
+                    // If it's already a string, try to parse and re-stringify for formatting
+                    if (typeof jsonData === 'string') {
+                        const parsed = JSON.parse(jsonData);
+                        return JSON.stringify(parsed, null, 2);
+                    }
+                    // If it's an object, stringify with formatting
+                    return JSON.stringify(jsonData, null, 2);
+                } catch (e) {
+                    // If it can't be parsed as JSON, return as is
+                    return jsonData;
+                }
+            }
+            
+            // Function to highlight JSON
+            function highlightJson(code) {
+                return Prism.highlight(code, Prism.languages.json, 'json');
+            }
+            
+            // Connect to WebSocket
+            function connectWebSocket() {
+                const ws = new WebSocket('ws://' + window.location.host + '/ws');
+                
+                ws.onopen = () => {
+                    console.log('Connected to WebSocket');
+                    connectionStatus.innerHTML = '<i class="fas fa-circle text-xs"></i> Connected';
+                    connectionStatus.className = 'flex items-center gap-1 text-sm px-2 py-1 rounded bg-green-500';
+                };
+                
+                ws.onmessage = (event) => {
+                    try {
+                        const webhookData = JSON.parse(event.data);
+                        webhookEntries.push(webhookData);
+                        requestCount++;
+                        requestCounter.textContent = `${requestCount} requests`;
+                        
+                        renderWebhookEntry(webhookData);
+                    } catch (error) {
+                        console.error('Error parsing webhook data:', error);
+                    }
+                };
+                
+                ws.onclose = () => {
+                    console.log('WebSocket connection closed');
+                    connectionStatus.innerHTML = '<i class="fas fa-circle text-xs"></i> Disconnected';
+                    connectionStatus.className = 'flex items-center gap-1 text-sm px-2 py-1 rounded bg-red-500';
+                    
+                    // Reconnect after 5 seconds
+                    setTimeout(() => {
+                        connectWebSocket();
+                    }, 5000);
+                };
+                
+                ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    connectionStatus.innerHTML = '<i class="fas fa-circle text-xs"></i> Error';
+                    connectionStatus.className = 'flex items-center gap-1 text-sm px-2 py-1 rounded bg-yellow-500';
+                };
+                
+                return ws;
+            }
+            
+            // Function to render a webhook entry
+            function renderWebhookEntry(webhookData) {
+                const timestamp = new Date(webhookData.timestamp);
+                const formattedTimestamp = timestamp.toLocaleString();
+                const relativeTime = getRelativeTime(timestamp);
+                const method = webhookData.method;
+                const path = webhookData.path;
+                const ip = webhookData.client_ip;
+                const port = webhookData.original_port;
+                
+                // Format headers and payload for display
+                const headersJson = formatJson(webhookData.headers);
+                const payloadJson = formatJson(webhookData.payload);
+                
+                // Create log entry
+                const logEntry = document.createElement('div');
+                logEntry.className = 'webhook-entry py-4 px-2 rounded';
+                logEntry.dataset.method = method;
+                logEntry.dataset.path = path;
+                logEntry.dataset.timestamp = webhookData.timestamp;
+                logEntry.dataset.ip = ip;
+                
+                // Set method color
+                const methodColor = {
+                    'GET': 'bg-green-100 text-green-800 border-green-200',
+                    'POST': 'bg-blue-100 text-blue-800 border-blue-200',
+                    'PUT': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+                    'PATCH': 'bg-purple-100 text-purple-800 border-purple-200',
+                    'DELETE': 'bg-red-100 text-red-800 border-red-200'
+                }[method] || 'bg-gray-100 text-gray-800 border-gray-200';
+                
+                logEntry.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex items-center">
+                            <span class="inline-block px-3 py-1.5 text-sm font-semibold rounded-lg ${methodColor}">${method}</span>
+                            <span class="ml-2 font-mono text-sm font-medium">${path}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-gray-500" title="${formattedTimestamp}">${relativeTime}</span>
+                            <button class="expand-btn bg-gray-100 hover:bg-gray-200 p-1 rounded">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-600 mb-2 flex gap-4">
+                        <span><i class="fas fa-network-wired mr-1"></i> ${ip}</span>
+                        ${port ? `<span><i class="fas fa-plug mr-1"></i> Port ${port}</span>` : ''}
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="mb-3 mt-2">
+                            <div class="flex justify-between items-center mb-1">
+                                <h4 class="text-sm font-semibold">Headers</h4>
+                                <span class="text-xs text-gray-500">${Object.keys(webhookData.headers).length} items</span>
+                            </div>
+                            <div class="json-container relative">
+                                <pre class="bg-gray-800 p-3 rounded text-xs"><code class="language-json">${highlightJson(headersJson)}</code></pre>
+                            </div>
+                        </div>
+                        <div class="mb-1">
+                            <h4 class="text-sm font-semibold mb-1">Payload</h4>
+                            <div class="json-container relative">
+                                <pre class="bg-gray-800 p-3 rounded text-xs"><code class="language-json">${highlightJson(payloadJson)}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Replace placeholder or add at the top
+                const placeholder = logContainer.querySelector('.text-gray-500.text-center');
+                if (placeholder) {
+                    logContainer.innerHTML = '';
+                }
+                
+                logContainer.insertBefore(logEntry, logContainer.firstChild);
+                
+                // Add copy buttons to the JSON containers
+                const jsonContainers = logEntry.querySelectorAll('.json-container');
+                createCopyButton(jsonContainers[0], headersJson);
+                createCopyButton(jsonContainers[1], payloadJson);
+                
+                // Add expand/collapse functionality
+                const expandBtn = logEntry.querySelector('.expand-btn');
+                expandBtn.addEventListener('click', () => {
+                    logEntry.classList.toggle('expanded');
+                    expandBtn.querySelector('i').classList.toggle('fa-chevron-down');
+                    expandBtn.querySelector('i').classList.toggle('fa-chevron-up');
+                });
+            }
+            
+            // Get relative time (e.g., "2 minutes ago")
+            function getRelativeTime(date) {
+                const now = new Date();
+                const diffInSeconds = Math.floor((now - date) / 1000);
+                
+                if (diffInSeconds < 60) return 'just now';
+                if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min ago`;
+                if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+                return `${Math.floor(diffInSeconds / 86400)} days ago`;
+            }
+            
+            // Filter logs based on search and method filter
+            function filterLogs() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const methodValue = methodFilter.value;
+                
+                const entries = logContainer.querySelectorAll('.webhook-entry');
+                entries.forEach(entry => {
+                    const method = entry.dataset.method;
+                    const path = entry.dataset.path.toLowerCase();
+                    const ip = entry.dataset.ip.toLowerCase();
+                    
+                    const matchesSearch = !searchTerm || 
+                        path.includes(searchTerm) || 
+                        ip.includes(searchTerm);
+                    
+                    const matchesMethod = !methodValue || method === methodValue;
+                    
+                    entry.style.display = (matchesSearch && matchesMethod) ? 'block' : 'none';
+                });
+            }
+            
+            // Add event listeners for filtering
+            searchInput.addEventListener('input', filterLogs);
+            methodFilter.addEventListener('change', filterLogs);
+            
+            // Clear logs button
+            clearLogsBtn.addEventListener('click', () => {
+                logContainer.innerHTML = '<p class="text-gray-500 text-center py-8">Waiting for webhook requests...</p>';
+                requestCount = 0;
+                requestCounter.textContent = '0 requests';
+                webhookEntries = [];
+            });
+            
+            // Start WebSocket connection
+            const ws = connectWebSocket();
+        });
+    </script>
+</body>
+</html>

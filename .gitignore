@@ -1,0 +1,41 @@
+# Rust build artifacts
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# Runtime data
+/data/
+*.arrow
+webhooks_*.json
+
+# Local environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Frontend build artifacts
+/frontend/dist/
+/frontend/node_modules/
+
+# Generated test collections
+/test-collections/
+
+# Temporary files
+.tmp/
+.temp/
+tmp/
+temp/

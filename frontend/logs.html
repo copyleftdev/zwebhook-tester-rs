@@ -1,0 +1,2353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZWebHook-Tester | Advanced Logs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-okaidia.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-xml.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsonpath-plus@7.2.0/dist/index-browser-esm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.7/dayjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.7/plugin/relativeTime.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+    <style>
+        pre {
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        
+        .theme-dark {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --text-primary: #f5f5f5;
+            --text-secondary: #a0aec0;
+            --border-color: #4a5568;
+            --accent-color: #3182ce;
+        }
+        
+        .theme-light {
+            --bg-primary: #f7fafc;
+            --bg-secondary: #ffffff;
+            --text-primary: #1a202c;
+            --text-secondary: #4a5568;
+            --border-color: #e2e8f0;
+            --accent-color: #3182ce;
+        }
+        
+        .dark-mode-enabled {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+        }
+        
+        .dark-mode-enabled .card {
+            background-color: var(--bg-secondary);
+            border-color: var(--border-color);
+        }
+        
+        /* Custom JSON path expression highlighting */
+        .json-path-match {
+            background-color: rgba(246, 224, 94, 0.3);
+            border-radius: 2px;
+        }
+        
+        /* Tooltip styles */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            white-space: nowrap;
+        }
+        
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        /* Animation for new entries */
+        @keyframes highlight-new {
+            from { background-color: rgba(66, 153, 225, 0.2); }
+            to { background-color: transparent; }
+        }
+        
+        .highlight-new {
+            animation: highlight-new 2s ease-out;
+        }
+        
+        /* Tabbed interface */
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Timeline visualization */
+        .timeline {
+            position: relative;
+            height: 60px;
+            overflow: hidden;
+            margin: 20px 0;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+        
+        .timeline-marker {
+            position: absolute;
+            width: 2px;
+            height: 100%;
+            background-color: var(--accent-color);
+            bottom: 0;
+            transform: translateX(-50%);
+        }
+        
+        .timeline-marker::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-color);
+            border-radius: 50%;
+            top: 10px;
+            left: -3px;
+        }
+        
+        /* Request replayer styles */
+        .editable-json {
+            font-family: monospace;
+            outline: none;
+            min-height: 100px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen theme-light" id="main-body">
+    <header class="bg-blue-600 text-white p-4 shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold">ZWebHook-Tester</h1>
+                <p class="text-sm opacity-90">Ultimate webhook testing and development platform</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <span id="connection-status" class="px-2 py-1 rounded text-sm font-semibold bg-gray-200 text-gray-700">Connecting...</span>
+                <span id="request-count" class="px-2 py-1 rounded text-sm font-semibold bg-blue-700 text-white">0 requests</span>
+                <button id="theme-toggle" class="p-2 rounded-full bg-blue-700 text-white hover:bg-blue-800 transition">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4">
+        <!-- Header navigation -->        
+        <div class="flex border-b">
+            <h2 class="px-4 py-2 font-medium text-blue-600 border-b-2 border-blue-500">Webhook Monitor</h2>
+            <div class="flex-grow"></div>
+            <button id="tab-analytics" class="px-4 py-2 font-medium text-gray-600 dark:text-gray-400 tab-btn">Analytics</button>
+            <button id="tab-settings" class="px-4 py-2 font-medium text-gray-600 dark:text-gray-400 tab-btn">Settings</button>
+        </div>
+        
+        <!-- Logs Tab Content -->
+        <div id="logs-tab" class="tab-content active">
+            <!-- Advanced Filtering -->
+            <div class="bg-white rounded-lg shadow-md p-4 mb-4">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-semibold">Advanced Filters</h3>
+                    <div>
+                        <button id="save-filter" class="px-2 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600 transition">
+                            <i class="fas fa-save mr-1"></i> Save Filter
+                        </button>
+                        <button id="clear-filter" class="px-2 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 transition">
+                            <i class="fas fa-eraser mr-1"></i> Clear Filters
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <div class="flex mb-2">
+                            <div class="w-full">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                                <div class="relative">
+                                    <input type="text" id="search-input" placeholder="Search in all fields..." class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <i class="fas fa-search text-gray-400"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">HTTP Method</label>
+                            <select id="method-filter" class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">All Methods</option>
+                                <option value="GET">GET</option>
+                                <option value="POST">POST</option>
+                                <option value="PUT">PUT</option>
+                                <option value="DELETE">DELETE</option>
+                                <option value="PATCH">PATCH</option>
+                                <option value="OPTIONS">OPTIONS</option>
+                                <option value="HEAD">HEAD</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="mb-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Path Contains</label>
+                            <input type="text" id="path-filter" placeholder="/api/..." class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div class="mb-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Client IP</label>
+                            <input type="text" id="ip-filter" placeholder="192.168.1.1" class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="mb-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Time Range</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="datetime-local" id="time-from" class="border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <input type="datetime-local" id="time-to" class="border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">JSON Path</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="json-path" placeholder="$.user.id" class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <button id="json-path-help" class="px-2 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition tooltip">
+                                    <i class="fas fa-question"></i>
+                                    <span class="tooltip-text">Use JSONPath expressions like $.user.id or $..name</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Webhook Logs -->
+            <div class="bg-white rounded-lg shadow-md p-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">Webhook Logs</h2>
+                    <div class="flex gap-2">
+                        <button id="export-logs" class="px-3 py-1 rounded text-sm font-semibold bg-blue-500 text-white hover:bg-blue-600 transition">
+                            <i class="fas fa-download mr-1"></i> Export
+                        </button>
+                        <button id="clear-logs" class="px-3 py-1 rounded text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition">
+                            <i class="fas fa-trash-alt mr-1"></i> Clear
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Request Timeline -->
+                <div class="timeline mb-4" id="request-timeline">
+                    <div class="text-xs text-gray-500 absolute top-1 left-2">Timeline (last 30 minutes)</div>
+                    <!-- Timeline markers will be added here by JS -->
+                </div>
+                
+                <div id="logs-container" class="overflow-y-auto max-h-[calc(100vh-450px)] divide-y">
+                    <div id="logs"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Request Replayer Tab -->
+        <div id="replay-tab" class="tab-content">
+            <div class="bg-white rounded-lg shadow-md p-4 mb-4">
+                <h3 class="font-semibold mb-3">Request Replayer</h3>
+                <p class="text-sm text-gray-600 mb-4">Select a webhook from logs or create a new request to replay with modifications.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Request Builder -->
+                    <div>
+                        <h4 class="font-medium mb-2">Request Builder</h4>
+                        
+                        <div class="mb-3">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">HTTP Method</label>
+                            <select id="replay-method" class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <option value="GET">GET</option>
+                                <option value="POST" selected>POST</option>
+                                <option value="PUT">PUT</option>
+                                <option value="DELETE">DELETE</option>
+                                <option value="PATCH">PATCH</option>
+                                <option value="OPTIONS">OPTIONS</option>
+                                <option value="HEAD">HEAD</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">URL Path</label>
+                            <input type="text" id="replay-path" value="/api/webhook" class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="flex justify-between mb-1">
+                                <label class="block text-sm font-medium text-gray-700">Headers</label>
+                                <button id="add-header" class="text-xs text-blue-600 hover:text-blue-800">+ Add Header</button>
+                            </div>
+                            <div id="headers-container" class="space-y-2 mb-2">
+                                <div class="grid grid-cols-3 gap-2">
+                                    <input type="text" placeholder="Name" value="Content-Type" class="header-name border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                    <input type="text" placeholder="Value" value="application/json" class="header-value border border-gray-300 rounded-md p-2 text-sm col-span-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Payload</label>
+                            <div class="border border-gray-300 rounded-md p-2 bg-gray-50">
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">JSON Path</label>
+                                <div class="flex gap-2">
+                                    <input type="text" id="json-path" placeholder="$.user.id" class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                    <button id="json-path-help" class="px-2 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition tooltip">
+                                        <i class="fas fa-question"></i>
+                                        <span class="tooltip-text">Use JSONPath expressions like $.user.id or $..name</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Webhook Logs -->
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold">Webhook Logs</h2>
+                        <div class="flex gap-2">
+                            <button id="export-logs" class="px-3 py-1 rounded text-sm font-semibold bg-blue-500 text-white hover:bg-blue-600 transition">
+                                <i class="fas fa-download mr-1"></i> Export
+                            </button>
+                            <button id="clear-logs" class="px-3 py-1 rounded text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition">
+                                <i class="fas fa-trash-alt mr-1"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Request Timeline -->
+                    <div class="timeline mb-4" id="request-timeline">
+                        <div class="text-xs text-gray-500 absolute top-1 left-2">Timeline (last 30 minutes)</div>
+                        <!-- Timeline markers will be added here by JS -->
+                    </div>
+                    
+                    <div id="logs-container" class="overflow-y-auto max-h-[calc(100vh-450px)] divide-y">
+                        <div id="logs"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Analytics Tab -->
+            <div id="analytics-tab" class="tab-content">
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <h3 class="font-semibold mb-3">Analytics</h3>
+                    <p class="text-sm text-gray-600 mb-4">View insights and statistics about your webhooks.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="border border-gray-200 rounded-md p-3 bg-blue-50">
+                            <div class="text-sm text-gray-600">Total Requests</div>
+                            <div class="text-2xl font-bold" id="stat-total-requests">0</div>
+                        </div>
+                        <div class="border border-gray-200 rounded-md p-3 bg-green-50">
+                            <div class="text-sm text-gray-600">Average Payload Size</div>
+                            <div class="text-2xl font-bold" id="stat-avg-size">0 KB</div>
+                        </div>
+                        <div class="border border-gray-200 rounded-md p-3 bg-purple-50">
+                            <div class="text-sm text-gray-600">Unique Endpoints</div>
+                            <div class="text-2xl font-bold" id="stat-unique-endpoints">0</div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="font-medium mb-3">Request Methods Distribution</h4>
+                            <div class="h-60 bg-gray-50 rounded-md border border-gray-200 flex items-center justify-center">
+                                <div id="methods-chart-placeholder" class="text-gray-400">
+                                    <i class="fas fa-chart-pie text-3xl mb-2 block text-center"></i>
+                                    <p>Chart will appear when data is available</p>
+                                </div>
+                                <canvas id="methods-chart" class="hidden"></canvas>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="font-medium mb-3">Requests Over Time</h4>
+                            <div class="h-60 bg-gray-50 rounded-md border border-gray-200 flex items-center justify-center">
+                                <div id="time-chart-placeholder" class="text-gray-400">
+                                    <i class="fas fa-chart-line text-3xl mb-2 block text-center"></i>
+                                    <p>Chart will appear when data is available</p>
+                                </div>
+                                <canvas id="time-chart" class="hidden"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Settings Tab -->
+            <div id="settings-tab" class="tab-content">
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <h3 class="font-semibold mb-3">Settings</h3>
+                    <p class="text-sm text-gray-600 mb-4">Configure your webhook testing environment.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="font-medium mb-3">Display Settings</h4>
+                            
+                            <div class="space-y-3">
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="setting-auto-expand" class="mr-2">
+                                    <label for="setting-auto-expand">Auto-expand new webhooks</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="setting-show-timeline" checked class="mr-2">
+                                    <label for="setting-show-timeline">Show request timeline</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="setting-relative-time" checked class="mr-2">
+                                    <label for="setting-relative-time">Use relative timestamps (e.g., "2 min ago")</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="setting-animate-new" checked class="mr-2">
+                                    <label for="setting-animate-new">Animate new webhook entries</label>
+                                </div>
+                                <div>
+                                    <label class="block mb-1">Max logs to keep in memory</label>
+                                    <input type="number" id="setting-max-logs" value="100" min="10" max="1000" class="w-full border border-gray-300 rounded-md p-2">
+                                </div>
+                            </div>
+                        </div>
+        <!-- Analytics Tab -->
+        <div id="analytics-tab" class="tab-content">
+            <div class="bg-white rounded-lg shadow-md p-4">
+                <h3 class="font-semibold mb-3">Analytics</h3>
+                <p class="text-sm text-gray-600 mb-4">View insights and statistics about your webhooks.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="border border-gray-200 rounded-md p-3 bg-blue-50">
+                        <div class="text-sm text-gray-600">Total Requests</div>
+                        <div class="text-2xl font-bold" id="stat-total-requests">0</div>
+                    </div>
+                    <div class="border border-gray-200 rounded-md p-3 bg-green-50">
+                        <div class="text-sm text-gray-600">Average Payload Size</div>
+                        <div class="text-2xl font-bold" id="stat-avg-size">0 KB</div>
+                    </div>
+                    <div class="border border-gray-200 rounded-md p-3 bg-purple-50">
+                        <div class="text-sm text-gray-600">Unique Endpoints</div>
+                        <div class="text-2xl font-bold" id="stat-unique-endpoints">0</div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-medium mb-3">Request Methods Distribution</h4>
+                        <div class="h-60 bg-gray-50 rounded-md border border-gray-200 flex items-center justify-center">
+                            <div id="methods-chart-placeholder" class="text-gray-400">
+                                <i class="fas fa-chart-pie text-3xl mb-2 block text-center"></i>
+                                <p>Chart will appear when data is available</p>
+                            </div>
+                            <canvas id="methods-chart" class="hidden"></canvas>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-medium mb-3">Requests Over Time</h4>
+                        <div class="h-60 bg-gray-50 rounded-md border border-gray-200 flex items-center justify-center">
+                            <div id="time-chart-placeholder" class="text-gray-400">
+                                <i class="fas fa-chart-line text-3xl mb-2 block text-center"></i>
+                                <p>Chart will appear when data is available</p>
+                            </div>
+                            <canvas id="time-chart" class="hidden"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Settings Tab -->
+        <div id="settings-tab" class="tab-content">
+            <div class="bg-white rounded-lg shadow-md p-4">
+                <h3 class="font-semibold mb-3">Settings</h3>
+                <p class="text-sm text-gray-600 mb-4">Configure your webhook testing environment.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-medium mb-3">Display Settings</h4>
+                        
+                        <div class="space-y-3">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="setting-auto-expand" class="mr-2">
+                                <label for="setting-auto-expand">Auto-expand new webhooks</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="setting-show-timeline" checked class="mr-2">
+                                <label for="setting-show-timeline">Show request timeline</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="setting-relative-time" checked class="mr-2">
+                                <label for="setting-relative-time">Use relative timestamps (e.g., "2 min ago")</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="setting-animate-new" checked class="mr-2">
+                                <label for="setting-animate-new">Animate new webhook entries</label>
+                            </div>
+                            <div>
+                                <label class="block mb-1">Max logs to keep in memory</label>
+                                <input type="number" id="setting-max-logs" value="100" min="10" max="1000" class="w-full border border-gray-300 rounded-md p-2">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-medium mb-3">Environment Variables</h4>
+                        <p class="text-sm text-gray-600 mb-2">Define variables to use in request replayer.</p>
+                        
+                        <div id="env-vars-container" class="space-y-2 mb-2">
+                            <div class="grid grid-cols-3 gap-2">
+                                <input type="text" placeholder="Name" value="API_KEY" class="env-var-name border border-gray-300 rounded-md p-2 text-sm">
+                                <input type="text" placeholder="Value" value="your-api-key-here" class="env-var-value border border-gray-300 rounded-md p-2 text-sm col-span-2">
+                            </div>
+                        </div>
+                        
+                        <button id="add-env-var" class="text-sm text-blue-600 hover:text-blue-800">
+                            <i class="fas fa-plus mr-1"></i> Add Variable
+                        </button>
+                        
+                        <div class="mt-6">
+                            <button id="save-settings" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition">
+                                <i class="fas fa-save mr-1"></i> Save Settings
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-gray-700 text-white p-3 text-center text-sm">
+        <p>ZWebHook-Tester &copy; 2025 | Robust webhook testing solution</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM elements
+            const logsElement = document.getElementById('logs');
+            const clearLogsButton = document.getElementById('clear-logs');
+            const connectionStatus = document.getElementById('connection-status');
+            const requestCount = document.getElementById('request-count');
+            const themeToggle = document.getElementById('theme-toggle');
+            const mainBody = document.getElementById('main-body');
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+            const searchInput = document.getElementById('search-input');
+            const methodFilter = document.getElementById('method-filter');
+            const pathFilter = document.getElementById('path-filter');
+            const ipFilter = document.getElementById('ip-filter');
+            const timeFrom = document.getElementById('time-from');
+            const timeTo = document.getElementById('time-to');
+            const jsonPathInput = document.getElementById('json-path');
+            // Clear filter button is accessed through the filters object
+            const saveFilterButton = document.getElementById('save-filter');
+            const exportLogsButton = document.getElementById('export-logs');
+            const requestTimeline = document.getElementById('request-timeline');
+            
+            // Initialize data structures
+            let webhookEntries = [];
+            
+            // Search optimization - create indexes and caching
+            const searchCache = new Map(); // Cache for search results
+            const searchIndex = {
+                methods: new Map(), // Method -> Set of entry IDs
+                paths: new Map(),   // Path segment -> Set of entry IDs
+                ips: new Map(),     // IP address -> Set of entry IDs
+                terms: new Map(),   // Search term -> Set of entry IDs
+                timestamps: []      // Sorted array of {id, timestamp} objects
+            };
+            
+            // Index a webhook entry for faster searching
+            function indexWebhookEntry(entry, entryId) {
+                // Index by method
+                const method = entry.method.toUpperCase();
+                if (!searchIndex.methods.has(method)) {
+                    searchIndex.methods.set(method, new Set());
+                }
+                searchIndex.methods.get(method).add(entryId);
+                
+                // Index by path segments
+                const pathSegments = entry.path.toLowerCase().split('/');
+                pathSegments.forEach(segment => {
+                    if (!segment) return;
+                    if (!searchIndex.paths.has(segment)) {
+                        searchIndex.paths.set(segment, new Set());
+                    }
+                    searchIndex.paths.get(segment).add(entryId);
+                });
+                
+                // Index by IP
+                const ip = entry.client_ip.toLowerCase();
+                if (!searchIndex.ips.has(ip)) {
+                    searchIndex.ips.set(ip, new Set());
+                }
+                searchIndex.ips.get(ip).add(entryId);
+                
+                // Index significant terms from payload
+                const payloadStr = JSON.stringify(entry.payload).toLowerCase();
+                const terms = new Set(payloadStr.match(/\w+/g) || []);
+                terms.forEach(term => {
+                    if (term.length < 3) return; // Skip short terms
+                    if (!searchIndex.terms.has(term)) {
+                        searchIndex.terms.set(term, new Set());
+                    }
+                    searchIndex.terms.get(term).add(entryId);
+                });
+                
+                // Add to timestamps array (keep it sorted)
+                const timestamp = new Date(entry.timestamp).getTime();
+                const tsObj = {id: entryId, timestamp};
+                const insertIdx = searchIndex.timestamps.findIndex(t => t.timestamp > timestamp);
+                if (insertIdx === -1) {
+                    searchIndex.timestamps.push(tsObj);
+                } else {
+                    searchIndex.timestamps.splice(insertIdx, 0, tsObj);
+                }
+            }
+            let totalRequests = 0;
+            let darkModeEnabled = localStorage.getItem('darkMode') === 'true';
+            let settings = loadSettings();
+            
+            // Initialize dark mode if previously enabled
+            if (darkModeEnabled) {
+                enableDarkMode();
+            }
+            
+            // Tab navigation - simplified for monitoring only
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    // Remove active class from all tabs
+                    document.querySelectorAll('.tab-button').forEach(btn => {
+                        btn.classList.remove('border-blue-500', 'text-blue-600');
+                        btn.classList.add('border-transparent', 'hover:text-blue-500', 'hover:border-blue-300');
+                    });
+                    
+                    // Hide all tab content
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.add('hidden');
+                    });
+                    
+                    // Show active tab
+                    const tabName = button.getAttribute('data-tab');
+                    document.getElementById(`${tabName}-tab`).classList.remove('hidden');
+                    
+                    // Highlight active tab
+                    button.classList.add('border-blue-500', 'text-blue-600');
+                    button.classList.remove('border-transparent', 'hover:text-blue-500', 'hover:border-blue-300');
+                    
+                    // Save active tab to localStorage
+                    localStorage.setItem('active_tab', tabName);
+                    
+                    // Refresh analytics if that tab is selected
+                    if (tabName === 'analytics') {
+                        updateAnalyticsCharts();
+                    }
+                });
+            });
+
+            // Restore active tab from localStorage
+            const activeTab = localStorage.getItem('active_tab');
+            if (activeTab) {
+                const activeButton = document.querySelector(`.tab-button[data-tab="${activeTab}"]`);
+                if (activeButton) {
+                    activeButton.click();
+                }
+            }
+            
+            // Theme toggle
+            themeToggle.addEventListener('click', () => {
+                darkModeEnabled = !darkModeEnabled;
+                localStorage.setItem('darkMode', darkModeEnabled);
+                
+                if (darkModeEnabled) {
+                    enableDarkMode();
+                } else {
+                    disableDarkMode();
+                }
+            });
+            
+            function enableDarkMode() {
+                mainBody.classList.add('dark-mode-enabled');
+                themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            }
+            
+            function disableDarkMode() {
+                mainBody.classList.remove('dark-mode-enabled');
+                themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+            }
+            
+            // Load settings from localStorage
+            function loadSettings() {
+                const defaultSettings = {
+                    autoExpand: false,
+                    showTimeline: true,
+                    relativeTime: true,
+                    animateNew: true,
+                    maxLogs: 100,
+                    envVars: [{ name: 'API_KEY', value: 'your-api-key-here' }]
+                };
+                
+                const savedSettings = localStorage.getItem('settings');
+                return savedSettings ? JSON.parse(savedSettings) : defaultSettings;
+            }
+            
+            // Make sure the searchIndex entries Map is initialized
+            if (!searchIndex.entries) {
+                searchIndex.entries = new Map();
+            }
+
+            // Fast JSONPath evaluation with memoization
+            const jsonPathCache = new Map();
+            function evaluateJsonPath(obj, path) {
+                // Create a cache key from the object and path
+                const cacheKey = path + '::' + JSON.stringify(obj).slice(0, 100);
+                
+                // Return cached result if available
+                if (jsonPathCache.has(cacheKey)) {
+                    return jsonPathCache.get(cacheKey);
+                }
+                
+                let result;
+                try {
+                    // Simple JSONPath implementation (limited but fast)
+                    if (path === '$') return obj;
+                    
+                    // Handle root element reference with property
+                    if (path.startsWith('$.')) {
+                        const parts = path.substring(2).split('.');
+                        let current = obj;
+                        
+                        for (const part of parts) {
+                            if (current === null || current === undefined) {
+                                current = undefined;
+                                break;
+                            }
+                            // Handle array indices
+                            if (part.includes('[') && part.includes(']')) {
+                                const propName = part.substring(0, part.indexOf('['));
+                                const indexStr = part.substring(part.indexOf('[')+1, part.indexOf(']'));
+                                const index = parseInt(indexStr, 10);
+                                
+                                current = current[propName];
+                                if (Array.isArray(current) && !isNaN(index)) {
+                                    current = current[index];
+                                } else {
+                                    current = undefined;
+                                    break;
+                                }
+                            } else {
+                                current = current[part];
+                            }
+                        }
+                        result = current;
+                    }
+                    // Handle recursive descent
+                    else if (path.startsWith('$..')) {
+                        const propName = path.substring(3);
+                        result = [];
+                        
+                        // Recursive function to find all matching properties
+                        function findProp(obj, name) {
+                            if (!obj || typeof obj !== 'object') return;
+                            
+                            if (Object.prototype.hasOwnProperty.call(obj, name)) {
+                                result.push(obj[name]);
+                            }
+                            
+                            for (const key in obj) {
+                                if (typeof obj[key] === 'object') {
+                                    findProp(obj[key], name);
+                                }
+                            }
+                        }
+                        
+                        findProp(obj, propName);
+                    }
+                } catch (e) {
+                    result = null;
+                }
+                
+                // Cache and return the result
+                jsonPathCache.set(cacheKey, result);
+                if (jsonPathCache.size > 1000) { // Prevent memory leak
+                    const oldestKey = jsonPathCache.keys().next().value;
+                    jsonPathCache.delete(oldestKey);
+                }
+                
+                return result;
+            }
+            
+            // Add an entry to the search index
+            function indexEntry(entryId, entry) {
+                const method = entry.method;
+                const path = entry.path.toLowerCase();
+                const ip = entry.client_ip.toLowerCase();
+                const payload = entry.payload;
+                
+                // Index by method
+                if (!searchIndex.methods.has(method)) {
+                    searchIndex.methods.set(method, new Set());
+                }
+                searchIndex.methods.get(method).add(entryId);
+                
+                // Index path segments
+                const pathSegments = path.split('/');
+                pathSegments.forEach(segment => {
+                    if (!segment) return;
+                    if (!searchIndex.paths.has(segment)) {
+                        searchIndex.paths.set(segment, new Set());
+                    }
+                    searchIndex.paths.get(segment).add(entryId);
+                });
+                
+                // Index IP
+                if (!searchIndex.ips.has(ip)) {
+                    searchIndex.ips.set(ip, new Set());
+                }
+                searchIndex.ips.get(ip).add(entryId);
+                
+                // Index text content from payload
+                const payloadStr = JSON.stringify(payload).toLowerCase();
+                const terms = new Set([...payloadStr.split(/\W+/)]); // Get unique terms
+                terms.forEach(term => {
+                    if (term.length < 3) return; // Skip very short terms
+                    if (!searchIndex.terms.has(term)) {
+                        searchIndex.terms.set(term, new Set());
+                    }
+                    searchIndex.terms.get(term).add(entryId);
+                });
+                
+                // Store entry in index for retrieval
+                searchIndex.entries.set(entryId, entry);
+            }
+                
+                // Performance monitoring
+                console.timeEnd('filter-performance');
+                
+                // Update UI to show filter results
+                if (searchText || methodFilter.value !== 'all' || pathFilter.value || ipFilter.value || timeFrom.value || timeTo.value || jsonPathInput.value) {
+                    document.getElementById('logs-container').classList.add('filter-active');
+                    document.getElementById('filter-status').textContent = `Showing ${visibleCount} of ${document.querySelectorAll('.webhook-entry').length} entries`;
+                    document.getElementById('filter-status').classList.remove('hidden');
+                } else {
+                    document.getElementById('logs-container').classList.remove('filter-active');
+                    document.getElementById('filter-status').classList.add('hidden');
+                }
+            }
+            
+            // Search and filter variables
+            const filters = {
+                searchInput: document.getElementById('search-text'),
+                methodFilter: document.getElementById('filter-method'),
+                pathFilter: document.getElementById('filter-path'),
+                ipFilter: document.getElementById('filter-ip'),
+                timeFrom: document.getElementById('time-from'),
+                timeTo: document.getElementById('time-to'),
+                jsonPathInput: document.getElementById('json-path'),
+                clearFilterBtn: document.getElementById('clear-filters')
+            };
+            
+            // Initialize search cache for better performance
+            const searchCache = new Map();
+            
+            // Debounce function for performance
+            function debounce(func, wait) {
+                let timeout;
+                return function(...args) {
+                    const context = this;
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(context, args), wait);
+                };
+            }
+            
+            // Create a debounced version of applyFilters
+            const debouncedSearch = debounce(applyFilters, 250);
+            
+            // High-performance search implementation using indexes
+            function applyFilters() {
+                console.time('filter-performance');
+                
+                // Get filter values
+                const searchText = filters.searchInput.value.toLowerCase();
+                const methodValue = filters.methodFilter.value;
+                const pathValue = filters.pathFilter.value.toLowerCase();
+                const ipValue = filters.ipFilter.value.toLowerCase();
+                const fromTime = filters.timeFrom.value ? new Date(filters.timeFrom.value).getTime() : null;
+                const toTime = filters.timeTo.value ? new Date(filters.timeTo.value).getTime() : null;
+                const jsonPathExpr = filters.jsonPathInput.value.trim();
+                
+                // Create cache key
+                const cacheKey = `${searchText}|${methodValue}|${pathValue}|${ipValue}|${fromTime}|${toTime}|${jsonPathExpr}`;
+                
+                // Check cache first for better performance
+                if (searchCache.has(cacheKey)) {
+                    console.log('Using cached search results');
+                    updateVisibility(searchCache.get(cacheKey));
+                    console.timeEnd('filter-performance');
+                    return;
+                }
+                
+                // Start with all entries
+                let matchingIds = new Set();
+                
+                // For empty filter, show all
+                if (!searchText && methodValue === 'all' && !pathValue && !ipValue && !fromTime && !toTime && !jsonPathExpr) {
+                    for (let i = 0; i < webhookEntries.length; i++) {
+                        matchingIds.add(i);
+                    }
+                } else {
+                    // Filter by method (most restrictive filter first)
+                    let methodMatches;
+                    if (methodValue && methodValue !== 'all') {
+                        methodMatches = searchIndex.methods.get(methodValue) || new Set();
+                    } else {
+                        // If no method filter, include all
+                        methodMatches = new Set();
+                        for (let i = 0; i < webhookEntries.length; i++) {
+                            methodMatches.add(i);
+                        }
+                    }
+                    
+                    // Filter by path
+                    let pathMatches;
+                    if (pathValue) {
+                        pathMatches = new Set();
+                        for (const [segment, ids] of searchIndex.paths.entries()) {
+                            if (segment.includes(pathValue)) {
+                                ids.forEach(id => pathMatches.add(id));
+                            }
+                        }
+                    } else {
+                        // If no path filter, include all
+                        pathMatches = new Set(methodMatches);
+                    }
+                    
+                    // Filter by IP
+                    let ipMatches;
+                    if (ipValue) {
+                        ipMatches = new Set();
+                        for (const [ip, ids] of searchIndex.ips.entries()) {
+                            if (ip.includes(ipValue)) {
+                                ids.forEach(id => ipMatches.add(id));
+                            }
+                        }
+                    } else {
+                        // If no IP filter, include all
+                        ipMatches = new Set(methodMatches);
+                    }
+                    
+                    // Filter by time range
+                    let timeMatches;
+                    if (fromTime || toTime) {
+                        timeMatches = new Set();
+                        for (const {id, timestamp} of searchIndex.timestamps) {
+                            if ((fromTime && timestamp < fromTime) || (toTime && timestamp > toTime)) {
+                                continue;
+                            }
+                            timeMatches.add(id);
+                        }
+                    } else {
+                        // If no time filter, include all
+                        timeMatches = new Set(methodMatches);
+                    }
+                    
+                    // Filter by search text
+                    let textMatches;
+                    if (searchText) {
+                        const searchTerms = searchText.split(/\s+/).filter(t => t.length > 2);
+                        
+                        if (searchTerms.length > 0) {
+                            textMatches = new Set();
+                            
+                            // Try to use index for each term
+                            let allTermMatches = [];
+                            
+                            for (const term of searchTerms) {
+                                const termMatches = new Set();
+                                
+                                // Check in indexed terms
+                                for (const [indexedTerm, ids] of searchIndex.terms.entries()) {
+                                    if (indexedTerm.includes(term)) {
+                                        ids.forEach(id => termMatches.add(id));
+                                    }
+                                }
+                                
+                                allTermMatches.push(termMatches);
+                            }
+                            
+                            // Find IDs that match all terms
+                            if (allTermMatches.length > 0) {
+                                // Start with first term's matches
+                                textMatches = new Set(allTermMatches[0]);
+                                
+                                // Filter by remaining terms (AND logic)
+                                for (let i = 1; i < allTermMatches.length; i++) {
+                                    textMatches = new Set([...textMatches].filter(id => allTermMatches[i].has(id)));
+                                }
+                            }
+                        } else {
+                            // No valid search terms, include all
+                            textMatches = new Set(methodMatches);
+                        }
+                    } else {
+                        // If no text search, include all
+                        textMatches = new Set(methodMatches);
+                    }
+                    
+                    // Compute intersection of all filters (AND logic)
+                    matchingIds = new Set([...methodMatches]
+                        .filter(id => pathMatches.has(id))
+                        .filter(id => ipMatches.has(id))
+                        .filter(id => timeMatches.has(id))
+                        .filter(id => textMatches.has(id)));
+                    
+                    // Apply JSONPath filter (can't be pre-indexed)
+                    if (jsonPathExpr) {
+                        matchingIds = new Set([...matchingIds].filter(id => {
+                            const webhook = webhookEntries[id];
+                            try {
+                                const result = evaluateJsonPath(webhook.payload, jsonPathExpr);
+                                return result && ((!Array.isArray(result)) || result.length > 0);
+                            } catch (e) {
+                                return false;
+                            }
+                        }));
+                    }
+                }
+                
+                // Cache results (limit cache size)
+                searchCache.set(cacheKey, matchingIds);
+                if (searchCache.size > 20) {
+                    // Remove oldest entry
+                    const oldestKey = searchCache.keys().next().value;
+                    searchCache.delete(oldestKey);
+                }
+                
+                // Update UI
+                updateVisibility(matchingIds);
+                console.timeEnd('filter-performance');
+            }
+            
+            // Update visibility in the DOM
+            function updateVisibility(visibleIds) {
+                const entries = document.querySelectorAll('.webhook-entry');
+                let visibleCount = 0;
+                
+                // Update entry visibility
+                entries.forEach((entry, index) => {
+                    if (visibleIds.has(index)) {
+                        entry.classList.remove('hidden');
+                        visibleCount++;
+                    } else {
+                        entry.classList.add('hidden');
+                    }
+                });
+                
+                // Update filter status indicator
+                const filterStatus = document.getElementById('filter-status');
+                if (filterStatus) {
+                    filterStatus.textContent = `Showing ${visibleCount} of ${entries.length} entries`;
+                    filterStatus.classList.toggle('hidden', visibleCount === entries.length);
+                }
+                
+                // Update container class
+                const logsContainer = document.getElementById('logs-container');
+                if (logsContainer) {
+                    logsContainer.classList.toggle('filter-active', visibleCount < entries.length);
+                }
+            }
+            
+            // Hook up filter events with debouncing for better performance
+            Object.values(filters).forEach(el => {
+                if (el && el !== filters.clearFilterBtn) el.addEventListener('input', debouncedSearch);
+            });
+            
+            // Clear filters button
+            filters.clearFilterBtn.addEventListener('click', () => {
+                filters.searchInput.value = '';
+                filters.methodFilter.value = 'all';
+                filters.pathFilter.value = '';
+                filters.ipFilter.value = '';
+                filters.timeFrom.value = '';
+                filters.timeTo.value = '';
+                filters.jsonPathInput.value = '';
+                applyFilters();
+            });
+            
+            // Fast JSONPath evaluation with memoization
+            const jsonPathCache = new Map();
+            
+            function evaluateJsonPath(obj, path) {
+                if (!path) return null;
+                
+                // Create cache key
+                const cacheKey = path + '::' + JSON.stringify(obj).slice(0, 100);
+                
+                // Check cache
+                if (jsonPathCache.has(cacheKey)) {
+                    return jsonPathCache.get(cacheKey);
+                }
+                
+                // Simple JSONPath implementation
+                let result = null;
+                try {
+                    // Handle root object
+                    if (path === '$') {
+                        result = obj;
+                    }
+                    // Handle dot notation
+                    else if (path.startsWith('$.')) {
+                        const parts = path.substring(2).split('.');
+                        let current = obj;
+                        
+                        for (const part of parts) {
+                            if (!current) break;
+                            current = current[part];
+                        }
+                        
+                        result = current;
+                    }
+                } catch (e) {
+                    console.error('JSONPath error:', e);
+                }
+                
+                // Store in cache (limited size)
+                jsonPathCache.set(cacheKey, result);
+                if (jsonPathCache.size > 500) {
+                    const oldestKey = jsonPathCache.keys().next().value;
+                    jsonPathCache.delete(oldestKey);
+                }
+                
+                return result;
+            }
+            
+            // Event listeners are already set up above with debouncing
+            
+            // Clear filters
+            filters.clearFilterBtn.addEventListener('click', () => {
+                filters.searchInput.value = '';
+                filters.methodFilter.value = 'all';
+                filters.pathFilter.value = '';
+                filters.ipFilter.value = '';
+                filters.timeFrom.value = '';
+                filters.timeTo.value = '';
+                filters.jsonPathInput.value = '';
+                applyFilters();
+            });
+            
+            // Save filter as preset
+            saveFilterButton.addEventListener('click', () => {
+                const filterName = prompt('Enter a name for this filter preset:');
+                if (!filterName) return;
+                
+                const filterPreset = {
+                    name: filterName,
+                    search: filters.searchInput.value,
+                    method: filters.methodFilter.value,
+                    path: filters.pathFilter.value,
+                    ip: filters.ipFilter.value,
+                    from: filters.timeFrom.value,
+                    to: filters.timeTo.value,
+                    jsonPath: filters.jsonPathInput.value
+                };
+                
+                // Save to localStorage
+                const filterPresets = JSON.parse(localStorage.getItem('filterPresets') || '[]');
+                filterPresets.push(filterPreset);
+                localStorage.setItem('filterPresets', JSON.stringify(filterPresets));
+                
+                alert(`Filter preset "${filterName}" saved!`);
+            });
+            
+            // Export logs
+            exportLogsButton.addEventListener('click', () => {
+                const format = prompt('Select export format:\n1. JSON\n2. CSV\n3. Postman Collection');
+                if (!format) return;
+                
+                let exportData;
+                let fileName;
+                let contentType;
+                
+                switch (format) {
+                    case '1':
+                        exportData = JSON.stringify(webhookEntries, null, 2);
+                        fileName = 'webhook_logs.json';
+                        contentType = 'application/json';
+                        break;
+                    case '2':
+                        // Convert to CSV
+                        const headers = ['Timestamp', 'Method', 'Path', 'Client IP', 'Port', 'Headers', 'Payload'];
+                        const rows = webhookEntries.map(entry => [
+                            new Date(entry.timestamp).toISOString(),
+                            entry.method,
+                            entry.path,
+                            entry.client_ip,
+                            entry.original_port,
+                            JSON.stringify(entry.headers),
+                            JSON.stringify(entry.payload)
+                        ]);
+                        
+                        exportData = [headers, ...rows].map(row => row.map(cell => 
+                            typeof cell === 'string' ? `"${cell.replace(/"/g, '""')}"` : cell
+                        ).join(',')).join('\n');
+                        
+                        fileName = 'webhook_logs.csv';
+                        contentType = 'text/csv';
+                        break;
+                    case '3':
+                        // Create Postman collection
+                        const collection = {
+                            info: {
+                                name: 'Webhook Logs Collection',
+                                schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+                            },
+                            item: webhookEntries.map((entry, index) => ({
+                                name: `${entry.method} ${entry.path} (${new Date(entry.timestamp).toLocaleString()})`,
+                                request: {
+                                    method: entry.method,
+                                    header: Object.entries(entry.headers).map(([key, value]) => ({
+                                        key,
+                                        value: String(value),
+                                        type: 'text'
+                                    })),
+                                    url: {
+                                        raw: `http://localhost:8080${entry.path}`,
+                                        protocol: 'http',
+                                        host: ['localhost'],
+                                        port: '8080',
+                                        path: entry.path.split('/').filter(p => p)
+                                    },
+                                    body: {
+                                        mode: 'raw',
+                                        raw: JSON.stringify(entry.payload, null, 2),
+                                        options: {
+                                            raw: {
+                                                language: 'json'
+                                            }
+                                        }
+                                    }
+                                }
+                            }))
+                        };
+                        
+                        exportData = JSON.stringify(collection, null, 2);
+                        fileName = 'webhook_postman_collection.json';
+                        contentType = 'application/json';
+                        break;
+                    default:
+                        alert('Invalid format selected');
+                        return;
+                }
+                
+                // Create download link
+                const blob = new Blob([exportData], { type: contentType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+            
+            // Clear logs
+            clearLogsButton.addEventListener('click', function() {
+                logsElement.innerHTML = '';
+                webhookEntries = [];
+                updateTimeline();
+                totalRequests = 0;
+                requestCount.textContent = totalRequests;
+            });
+            
+            // WebSocket connection
+            function connectWebSocket() {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+                
+                ws.onopen = function() {
+                    connectionStatus.textContent = 'Connected';
+                    connectionStatus.classList.remove('bg-red-100', 'text-red-800');
+                    connectionStatus.classList.add('bg-green-100', 'text-green-800');
+                };
+                
+                ws.onclose = function() {
+                    connectionStatus.textContent = 'Disconnected';
+                    connectionStatus.classList.remove('bg-green-100', 'text-green-800');
+                    connectionStatus.classList.add('bg-red-100', 'text-red-800');
+                    
+                    // Attempt to reconnect after 2 seconds
+                    setTimeout(connectWebSocket, 2000);
+                };
+                
+                ws.onerror = function(error) {
+                    console.error('WebSocket error:', error);
+                    connectionStatus.textContent = 'Error';
+                    connectionStatus.classList.remove('bg-green-100', 'text-green-800');
+                    connectionStatus.classList.add('bg-red-100', 'text-red-800');
+                };
+                
+                ws.onmessage = function(event) {
+                    try {
+                        const webhook = JSON.parse(event.data);
+                        displayWebhook(webhook);
+                        updateAnalytics(webhook);
+                    } catch (e) {
+                        console.error('Error parsing webhook data:', e);
+                    }
+                };
+                
+                return ws;
+            }
+            
+            // Initialize WebSocket connection
+            const ws = connectWebSocket();
+            
+            // Display webhook in the logs
+            function displayWebhook(webhook) {
+                // Limit entries based on settings
+                if (webhookEntries.length >= settings.maxLogs) {
+                    webhookEntries.shift();
+                    if (logsElement.firstChild) {
+                        logsElement.removeChild(logsElement.firstChild);
+                    }
+                }
+                
+                // Store the webhook entry
+                const entryId = webhookEntries.length;
+                webhook.id = entryId; // Add ID for indexing
+                webhookEntries.push(webhook);
+                totalRequests++;
+                requestCount.textContent = totalRequests;
+                
+                // Index the webhook for optimized searching
+                indexWebhookEntry(webhook, entryId);
+                
+                // Clear search cache when new data arrives
+                searchCache.clear();
+                
+                // Create webhook entry element
+                const entry = document.createElement('div');
+                entry.className = 'webhook-entry p-3 border border-gray-200 rounded-md mb-4 dark:border-gray-700';
+                if (settings.animateNew) {
+                    entry.classList.add('animate-new');
+                    setTimeout(() => entry.classList.remove('animate-new'), 500);
+                }
+                
+                // Create header
+                const header = document.createElement('div');
+                header.className = 'flex items-center justify-between mb-2';
+                
+                // Create method badge
+                const methodBadge = document.createElement('span');
+                methodBadge.className = 'method-badge px-2 py-1 rounded-md text-white font-mono text-xs font-bold';
+                methodBadge.textContent = webhook.method;
+                
+                // Set color based on method
+                switch (webhook.method.toUpperCase()) {
+                    case 'GET':
+                        methodBadge.classList.add('bg-blue-600');
+                        break;
+                    case 'POST':
+                        methodBadge.classList.add('bg-green-600');
+                        break;
+                    case 'PUT':
+                        methodBadge.classList.add('bg-yellow-600');
+                        break;
+                    case 'DELETE':
+                        methodBadge.classList.add('bg-red-600');
+                        break;
+                    case 'PATCH':
+                        methodBadge.classList.add('bg-purple-600');
+                        break;
+                    default:
+                        methodBadge.classList.add('bg-gray-600');
+                }
+                
+                // Path display
+                const pathText = document.createElement('span');
+                pathText.className = 'ml-2 font-mono truncate flex-grow';
+                pathText.textContent = webhook.path;
+                
+                // Timestamp
+                const timestampText = document.createElement('span');
+                timestampText.className = 'text-xs text-gray-500 dark:text-gray-400';
+                const timestamp = new Date(webhook.timestamp);
+                
+                if (settings.relativeTime) {
+                    timestampText.textContent = dayjs(timestamp).fromNow();
+                    timestampText.title = timestamp.toLocaleString();
+                } else {
+                    timestampText.textContent = timestamp.toLocaleString();
+                }
+                
+                // Append elements to header
+                header.appendChild(methodBadge);
+                header.appendChild(pathText);
+                header.appendChild(timestampText);
+                
+                // Add client IP
+                const clientInfo = document.createElement('div');
+                clientInfo.className = 'text-xs text-gray-600 mb-2 dark:text-gray-400';
+                clientInfo.textContent = `From: ${webhook.client_ip}:${webhook.original_port}`;
+                
+                // Create expand button
+                const expandButton = document.createElement('button');
+                expandButton.className = 'text-xs text-blue-600 hover:underline dark:text-blue-400 mb-2';
+                expandButton.textContent = 'Show Details';
+                
+                // Create collapsible content
+                const collapsible = document.createElement('div');
+                collapsible.className = 'webhook-details hidden';
+                
+                // Headers section
+                const headersSection = document.createElement('div');
+                headersSection.className = 'mb-3';
+                
+                const headersTitle = document.createElement('h3');
+                headersTitle.className = 'text-sm font-semibold mb-1 dark:text-gray-300';
+                headersTitle.textContent = 'Headers';
+                
+                const headersContent = document.createElement('pre');
+                headersContent.className = 'text-xs bg-gray-100 p-2 rounded-md overflow-x-auto dark:bg-gray-800 dark:text-gray-300';
+                headersContent.textContent = JSON.stringify(webhook.headers, null, 2);
+                
+                headersSection.appendChild(headersTitle);
+                headersSection.appendChild(headersContent);
+                
+                // Payload section
+                const payloadSection = document.createElement('div');
+                payloadSection.className = 'mb-3';
+                
+                const payloadTitle = document.createElement('h3');
+                payloadTitle.className = 'text-sm font-semibold mb-1 dark:text-gray-300';
+                payloadTitle.textContent = 'Payload';
+                
+                const payloadContent = document.createElement('pre');
+                payloadContent.className = 'text-xs bg-gray-100 p-2 rounded-md overflow-x-auto language-json dark:bg-gray-800 dark:text-gray-300';
+                payloadContent.textContent = JSON.stringify(webhook.payload, null, 2);
+                
+                payloadSection.appendChild(payloadTitle);
+                payloadSection.appendChild(payloadContent);
+                
+                // Append details to collapsible
+                collapsible.appendChild(headersSection);
+                collapsible.appendChild(payloadSection);
+                
+                // Add action buttons
+                const actionButtons = document.createElement('div');
+                actionButtons.className = 'flex space-x-2 mb-3';
+                
+                // Replay button
+                const replayButton = document.createElement('button');
+                replayButton.className = 'text-xs px-2 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700';
+                replayButton.innerHTML = '<i class="fas fa-play mr-1"></i> Replay';
+                replayButton.addEventListener('click', () => loadIntoReplayer(webhook));
+                
+                // Copy as cURL button
+                const curlButton = document.createElement('button');
+                curlButton.className = 'text-xs px-2 py-1 bg-gray-500 text-white rounded-md hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-700';
+                curlButton.innerHTML = '<i class="fas fa-terminal mr-1"></i> Copy as cURL';
+                curlButton.addEventListener('click', () => copyCurlCommand(webhook));
+                
+                // Add to Test Suite button
+                const testButton = document.createElement('button');
+                testButton.className = 'text-xs px-2 py-1 bg-purple-500 text-white rounded-md hover:bg-purple-600 dark:bg-purple-600 dark:hover:bg-purple-700';
+                testButton.innerHTML = '<i class="fas fa-vial mr-1"></i> Add to Test Suite';
+                testButton.addEventListener('click', () => addToTestSuite(webhook));
+                
+                actionButtons.appendChild(replayButton);
+                actionButtons.appendChild(curlButton);
+                actionButtons.appendChild(testButton);
+                
+                collapsible.appendChild(actionButtons);
+                
+                // Toggle details
+                expandButton.addEventListener('click', function() {
+                    collapsible.classList.toggle('hidden');
+                    if (collapsible.classList.contains('hidden')) {
+                        expandButton.textContent = 'Show Details';
+                    } else {
+                        expandButton.textContent = 'Hide Details';
+                        // Apply syntax highlighting
+                        if (window.Prism) {
+                            Prism.highlightElement(payloadContent);
+                        }
+                    }
+                });
+                
+                // Append all elements to entry
+                entry.appendChild(header);
+                entry.appendChild(clientInfo);
+                entry.appendChild(expandButton);
+                entry.appendChild(collapsible);
+                
+                // Add entry to logs
+                logsElement.appendChild(entry);
+                
+                // Auto-expand if setting is enabled
+                if (settings.autoExpand) {
+                    expandButton.click();
+                }
+                
+                // Update timeline
+                updateTimeline();
+                
+                // Apply current filters
+                applyFilters();
+            }
+            
+            // Load webhook into replayer
+            function loadIntoReplayer(webhook) {
+                // Switch to replayer tab
+                document.querySelector('.tab-button[data-tab="replayer"]').click();
+                
+                // Populate fields
+                document.getElementById('replayer-method').value = webhook.method;
+                document.getElementById('replayer-path').value = webhook.path;
+                
+                // Format headers as key-value pairs
+                const headersText = Object.entries(webhook.headers)
+                    .map(([key, value]) => `${key}: ${value}`)
+                    .join('\n');
+                document.getElementById('replayer-headers').value = headersText;
+                
+                // Format payload
+                document.getElementById('replayer-payload').value = JSON.stringify(webhook.payload, null, 2);
+            }
+            
+            // Copy webhook as cURL command
+            function copyCurlCommand(webhook) {
+                // Build cURL command
+                let curlCmd = `curl -X ${webhook.method} \\
+`;
+                
+                // Add headers
+                Object.entries(webhook.headers).forEach(([key, value]) => {
+                    curlCmd += `  -H '${key}: ${value}' \\
+`;
+                });
+                
+                // Add payload for non-GET requests
+                if (webhook.method !== 'GET') {
+                    curlCmd += `  -d '${JSON.stringify(webhook.payload)}' \\
+`;
+                }
+                
+                // Add URL (using current hostname as default)
+                curlCmd += `  'http://${window.location.hostname}:8080${webhook.path}'`;
+                
+                // Copy to clipboard
+                navigator.clipboard.writeText(curlCmd)
+                    .then(() => alert('cURL command copied to clipboard!'))
+                    .catch(err => {
+                        console.error('Failed to copy: ', err);
+                        alert('Failed to copy cURL command. See console for details.');
+                    });
+            }
+            
+            // Add webhook to test suite
+            function addToTestSuite(webhook) {
+                // Switch to test suite tab
+                document.querySelector('.tab-button[data-tab="tests"]').click();
+                
+                // Create test template
+                const testTemplate = {
+                    name: `Test ${webhook.method} ${webhook.path}`,
+                    request: {
+                        method: webhook.method,
+                        path: webhook.path,
+                        headers: webhook.headers,
+                        payload: webhook.payload
+                    },
+                    assertions: [
+                        { type: 'status', expected: 200 },
+                        { type: 'responseTime', max: 1000 }
+                    ]
+                };
+                
+                // Call the test suite manager to add this template
+                addTestToSuite(testTemplate);
+            }
+            
+            // Add test to suite (placeholder implementation)
+            function addTestToSuite(testTemplate) {
+                alert('Test added to suite! This functionality will be implemented in the next phase.');
+                console.log('Test template:', testTemplate);
+                // Will be implemented in the next phase
+            }
+            
+            // Update timeline visualization
+            function updateTimeline() {
+                if (!settings.showTimeline || webhookEntries.length === 0) {
+                    requestTimeline.innerHTML = '';
+                    return;
+                }
+                
+                requestTimeline.innerHTML = '';
+                
+                // Create timeline based on last 20 entries
+                const timelineEntries = webhookEntries.slice(-20);
+                const earliestTime = new Date(timelineEntries[0].timestamp).getTime();
+                const latestTime = new Date(timelineEntries[timelineEntries.length - 1].timestamp).getTime();
+                const timeRange = latestTime - earliestTime || 1; // Avoid division by zero
+                
+                timelineEntries.forEach(entry => {
+                    const marker = document.createElement('div');
+                    marker.className = 'timeline-marker';
+                    
+                    // Position marker based on time
+                    const entryTime = new Date(entry.timestamp).getTime();
+                    const position = ((entryTime - earliestTime) / timeRange) * 100;
+                    marker.style.left = `${position}%`;
+                    
+                    // Color based on method
+                    switch (entry.method.toUpperCase()) {
+                        case 'GET':
+                            marker.classList.add('bg-blue-600');
+                            break;
+                        case 'POST':
+                            marker.classList.add('bg-green-600');
+                            break;
+                        case 'PUT':
+                            marker.classList.add('bg-yellow-600');
+                            break;
+                        case 'DELETE':
+                            marker.classList.add('bg-red-600');
+                            break;
+                        case 'PATCH':
+                            marker.classList.add('bg-purple-600');
+                            break;
+                        default:
+                            marker.classList.add('bg-gray-600');
+                    }
+                    
+                    // Add tooltip
+                    marker.title = `${entry.method} ${entry.path} at ${new Date(entry.timestamp).toLocaleString()}`;
+                    
+                    requestTimeline.appendChild(marker);
+                });
+            }
+            
+            // Update analytics with new webhook data
+            function updateAnalytics(webhook) {
+                // This will be expanded in future implementation
+                // For now, just update the basic counters
+                document.getElementById('total-requests').textContent = totalRequests;
+                
+                // Calculate payload size
+                const payloadSize = new Blob([JSON.stringify(webhook.payload)]).size;
+                const avgSizeEl = document.getElementById('avg-payload-size');
+                const currentAvg = parseInt(avgSizeEl.dataset.avg || '0');
+                const currentCount = parseInt(avgSizeEl.dataset.count || '0');
+                
+                // Calculate new average
+                const newAvg = (currentAvg * currentCount + payloadSize) / (currentCount + 1);
+                avgSizeEl.textContent = Math.round(newAvg) + ' bytes';
+                avgSizeEl.dataset.avg = newAvg;
+                avgSizeEl.dataset.count = currentCount + 1;
+                
+                // Update unique endpoints count
+                const uniqueEndpointsEl = document.getElementById('unique-endpoints');
+                const endpoints = new Set(webhookEntries.map(entry => entry.path));
+                uniqueEndpointsEl.textContent = endpoints.size;
+            }
+            
+            // Format timestamp
+            function formatTimestamp(timestamp) {
+                const date = new Date(timestamp);
+                return date.toLocaleString();
+            }
+            
+            // Request Replayer functionality
+            const replayerForm = document.getElementById('replayer-form');
+            const replayerMethod = document.getElementById('replayer-method');
+            const replayerPath = document.getElementById('replayer-path');
+            const replayerHeaders = document.getElementById('replayer-headers');
+            const replayerPayload = document.getElementById('replayer-payload');
+            const sendRequestBtn = document.getElementById('send-request');
+            const responseStatus = document.getElementById('response-status');
+            const responseTime = document.getElementById('response-time');
+            const responseHeaders = document.getElementById('response-headers');
+            const responseBody = document.getElementById('response-body');
+            
+            // Parse environment variables for replayer
+            function parseEnvVars(text) {
+                if (!settings.envVars || settings.envVars.length === 0) return text;
+                
+                let result = text;
+                settings.envVars.forEach(envVar => {
+                    const regex = new RegExp(`\{\{${envVar.name}\}\}`, 'g');
+                    result = result.replace(regex, envVar.value);
+                });
+                
+                return result;
+            }
+            
+            // Parse headers from text area
+            function parseHeaders(headersText) {
+                const headers = {};
+                if (!headersText.trim()) return headers;
+                
+                const lines = headersText.split('\n');
+                lines.forEach(line => {
+                    const colonIndex = line.indexOf(':');
+                    if (colonIndex > 0) {
+                        const key = line.substring(0, colonIndex).trim();
+                        const value = line.substring(colonIndex + 1).trim();
+                        headers[key] = value;
+                    }
+                });
+                
+                return headers;
+            }
+            
+            // Send request from replayer
+            sendRequestBtn.addEventListener('click', async function() {
+                // Validate input
+                if (!replayerPath.value.trim()) {
+                    alert('Path is required');
+                    return;
+                }
+                
+                // Show loading state
+                sendRequestBtn.disabled = true;
+                sendRequestBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+                
+                // Apply environment variables to path and payload
+                const parsedPath = parseEnvVars(replayerPath.value);
+                const parsedPayload = parseEnvVars(replayerPayload.value);
+                
+                // Prepare headers
+                const headersObj = parseHeaders(parseEnvVars(replayerHeaders.value));
+                
+                // Use current host as target
+                const url = `http://${window.location.hostname}:8080${parsedPath}`;
+                
+                // Record start time
+                const startTime = performance.now();
+                
+                try {
+                    // Prepare request options
+                    const fetchOptions = {
+                        method: replayerMethod.value,
+                        headers: headersObj
+                    };
+                    
+                    // Add body for non-GET requests
+                    if (replayerMethod.value !== 'GET') {
+                        // Determine if payload is JSON
+                        try {
+                            const payloadObj = JSON.parse(parsedPayload);
+                            fetchOptions.body = JSON.stringify(payloadObj);
+                            fetchOptions.headers['Content-Type'] = 'application/json';
+                        } catch (e) {
+                            // Not valid JSON, send as plain text
+                            fetchOptions.body = parsedPayload;
+                            if (!fetchOptions.headers['Content-Type']) {
+                                fetchOptions.headers['Content-Type'] = 'text/plain';
+                            }
+                        }
+                    }
+                    
+                    // Send request
+                    const response = await fetch(url, fetchOptions);
+                    
+                    // Calculate response time
+                    const endTime = performance.now();
+                    const duration = Math.round(endTime - startTime);
+                    
+                    // Extract response headers
+                    const responseHeadersObj = {};
+                    response.headers.forEach((value, key) => {
+                        responseHeadersObj[key] = value;
+                    });
+                    
+                    // Get response body
+                    let responseBodyText;
+                    const contentType = response.headers.get('content-type');
+                    
+                    if (contentType && contentType.includes('application/json')) {
+                        const responseJson = await response.json();
+                        responseBodyText = JSON.stringify(responseJson, null, 2);
+                    } else {
+                        responseBodyText = await response.text();
+                    }
+                    
+                    // Update response UI
+                    responseStatus.textContent = response.status + ' ' + response.statusText;
+                    responseStatus.className = response.ok ? 'text-green-600' : 'text-red-600';
+                    
+                    responseTime.textContent = duration + ' ms';
+                    responseHeaders.textContent = JSON.stringify(responseHeadersObj, null, 2);
+                    responseBody.textContent = responseBodyText;
+                    
+                    // Apply syntax highlighting
+                    if (window.Prism) {
+                        Prism.highlightElement(responseHeaders);
+                        Prism.highlightElement(responseBody);
+                    }
+                    
+                    // Show response section
+                    document.getElementById('response-section').classList.remove('hidden');
+                    
+                } catch (error) {
+                    console.error('Request failed:', error);
+                    responseStatus.textContent = 'Request Failed';
+                    responseStatus.className = 'text-red-600';
+                    responseTime.textContent = '-';
+                    responseHeaders.textContent = '';
+                    responseBody.textContent = error.toString();
+                    
+                    // Show response section
+                    document.getElementById('response-section').classList.remove('hidden');
+                } finally {
+                    // Reset button state
+                    sendRequestBtn.disabled = false;
+                    sendRequestBtn.innerHTML = '<i class="fas fa-paper-plane mr-1"></i> Send Request';
+                }
+            });
+            
+            // Settings panel functionality
+            const settingsForm = document.getElementById('settings-form');
+            const autoExpandCheckbox = document.getElementById('auto-expand');
+            const showTimelineCheckbox = document.getElementById('show-timeline');
+            const relativeTimeCheckbox = document.getElementById('relative-time');
+            const animateNewCheckbox = document.getElementById('animate-new');
+            const maxLogsInput = document.getElementById('max-logs');
+            const envVarsContainer = document.getElementById('env-vars-container');
+            const addEnvVarBtn = document.getElementById('add-env-var');
+            const saveSettingsBtn = document.getElementById('save-settings');
+            
+            // Function to update average payload size
+            function updateAverageSize(payloadSize) {
+                const avgSizeEl = document.getElementById('avg-size');
+                const currentAvg = parseFloat(avgSizeEl.dataset.avg || '0');
+                const currentCount = parseInt(avgSizeEl.dataset.count || '0');
+                
+                const newAvg = (currentAvg * currentCount + payloadSize) / (currentCount + 1);
+                avgSizeEl.textContent = Math.round(newAvg) + ' bytes';
+                avgSizeEl.dataset.avg = newAvg;
+                avgSizeEl.dataset.count = currentCount + 1;
+            }
+            
+            // Initialize UI settings
+            function initUISettings() {
+                const settings = getUISettings();
+                
+                darkModeCheckbox.checked = settings.darkMode;
+                document.documentElement.classList.toggle('dark', settings.darkMode);
+                
+                autoExpandCheckbox.checked = settings.autoExpand;
+                showTimelineCheckbox.checked = settings.showTimeline;
+                relativeTimeCheckbox.checked = settings.relativeTime;
+                animateNewCheckbox.checked = settings.animateNew;
+                maxLogsInput.value = settings.maxLogs;
+                
+                // Load environment variables
+                renderEnvVarsUI();
+            }
+            
+            // Render environment variables UI
+            function renderEnvVarsUI() {
+                envVarsContainer.innerHTML = '';
+                
+                if (!settings.envVars || settings.envVars.length === 0) {
+                    settings.envVars = [];
+                }
+                
+                settings.envVars.forEach((envVar, index) => {
+                    const envVarRow = document.createElement('div');
+                    envVarRow.className = 'flex space-x-2 mb-2';
+                    
+                    const nameInput = document.createElement('input');
+                    nameInput.type = 'text';
+                    nameInput.className = 'flex-1 p-2 border rounded-md dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300';
+                    nameInput.placeholder = 'Name';
+                    nameInput.value = envVar.name;
+                    nameInput.dataset.index = index;
+                    nameInput.addEventListener('input', updateEnvVar);
+                    
+                    const valueInput = document.createElement('input');
+                    valueInput.type = 'text';
+                    valueInput.className = 'flex-1 p-2 border rounded-md dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300';
+                    valueInput.placeholder = 'Value';
+                    valueInput.value = envVar.value;
+                    valueInput.dataset.index = index;
+                    valueInput.addEventListener('input', updateEnvVar);
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.type = 'button';
+                    deleteBtn.className = 'p-2 bg-red-500 text-white rounded-md hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700';
+                    deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                    deleteBtn.dataset.index = index;
+                    deleteBtn.addEventListener('click', deleteEnvVar);
+                    
+                    envVarRow.appendChild(nameInput);
+                    envVarRow.appendChild(valueInput);
+                    envVarRow.appendChild(deleteBtn);
+                    
+                    envVarsContainer.appendChild(envVarRow);
+                });
+            }
+            
+            // Update environment variable
+            function updateEnvVar(event) {
+                const index = parseInt(event.target.dataset.index);
+                const isName = event.target.placeholder === 'Name';
+                
+                if (isName) {
+                    settings.envVars[index].name = event.target.value;
+                } else {
+                    settings.envVars[index].value = event.target.value;
+                }
+            }
+            
+            // Delete environment variable
+            function deleteEnvVar(event) {
+                const index = parseInt(event.target.dataset.index);
+                settings.envVars.splice(index, 1);
+                renderEnvVarsUI();
+            }
+            
+            // Add new environment variable
+            addEnvVarBtn.addEventListener('click', function() {
+                settings.envVars.push({ name: '', value: '' });
+                renderEnvVarsUI();
+            });
+            
+            // Save settings
+            saveSettingsBtn.addEventListener('click', function() {
+                settings.autoExpand = autoExpandCheckbox.checked;
+                settings.showTimeline = showTimelineCheckbox.checked;
+                settings.relativeTime = relativeTimeCheckbox.checked;
+                settings.animateNew = animateNewCheckbox.checked;
+                settings.maxLogs = parseInt(maxLogsInput.value) || 100;
+                
+                // Filter out empty env vars
+                settings.envVars = settings.envVars.filter(env => env.name.trim() !== '');
+                
+                // Save to localStorage
+                localStorage.setItem('settings', JSON.stringify(settings));
+                
+                // Update UI based on new settings
+                if (settings.showTimeline) {
+                    updateTimeline();
+                } else {
+                    requestTimeline.innerHTML = '';
+                }
+                
+                alert('Settings saved!');
+            });
+            
+            // Initialize charts for Analytics tab
+            function initCharts() {
+                // Method distribution chart
+                const methodChartCtx = document.getElementById('method-chart').getContext('2d');
+                const methodChart = new Chart(methodChartCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
+                        datasets: [{
+                            data: [0, 0, 0, 0, 0, 0, 0],
+                            backgroundColor: [
+                                '#3B82F6', // blue for GET
+                                '#10B981', // green for POST
+                                '#F59E0B', // yellow for PUT
+                                '#EF4444', // red for DELETE
+                                '#8B5CF6', // purple for PATCH
+                                '#6B7280', // gray for OPTIONS
+                                '#1F2937'  // dark gray for HEAD
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    color: darkModeEnabled ? '#D1D5DB' : '#374151'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'HTTP Methods Distribution',
+                                color: darkModeEnabled ? '#D1D5DB' : '#374151'
+                            }
+                        }
+                    }
+                });
+                
+                // Requests over time chart
+                const timeChartCtx = document.getElementById('time-chart').getContext('2d');
+                const timeChart = new Chart(timeChartCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Requests',
+                            data: [],
+                            borderColor: '#3B82F6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                            tension: 0.1,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                ticks: {
+                                    color: darkModeEnabled ? '#D1D5DB' : '#374151'
+                                },
+                                grid: {
+                                    color: darkModeEnabled ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    color: darkModeEnabled ? '#D1D5DB' : '#374151'
+                                },
+                                grid: {
+                                    color: darkModeEnabled ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: darkModeEnabled ? '#D1D5DB' : '#374151'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Requests Over Time',
+                                color: darkModeEnabled ? '#D1D5DB' : '#374151'
+                            }
+                        }
+                    }
+                });
+                
+                // Store charts in window object for later updates
+                window.webhookCharts = {
+                    methodChart,
+                    timeChart
+                };
+            }
+            
+            // Update charts with webhook data
+            function updateCharts() {
+                if (!window.webhookCharts || webhookEntries.length === 0) return;
+                
+                // Method distribution
+                const methodCounts = {
+                    'GET': 0,
+                    'POST': 0,
+                    'PUT': 0,
+                    'DELETE': 0,
+                    'PATCH': 0,
+                    'OPTIONS': 0,
+                    'HEAD': 0
+                };
+                
+                webhookEntries.forEach(entry => {
+                    const method = entry.method.toUpperCase();
+                    if (methodCounts[method] !== undefined) {
+                        methodCounts[method]++;
+                    }
+                });
+                
+                window.webhookCharts.methodChart.data.datasets[0].data = [
+                    methodCounts['GET'],
+                    methodCounts['POST'],
+                    methodCounts['PUT'],
+                    methodCounts['DELETE'],
+                    methodCounts['PATCH'],
+                    methodCounts['OPTIONS'],
+                    methodCounts['HEAD']
+                ];
+                window.webhookCharts.methodChart.update();
+                
+                // Requests over time
+                // Group by 5-minute intervals
+                const timeGroups = {};
+                const now = new Date();
+                const hourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+                
+                // Only use entries from the last hour
+                const recentEntries = webhookEntries.filter(entry => 
+                    new Date(entry.timestamp) > hourAgo
+                );
+                
+                recentEntries.forEach(entry => {
+                    const timestamp = new Date(entry.timestamp);
+                    // Round to 5-minute intervals
+                    timestamp.setMinutes(Math.floor(timestamp.getMinutes() / 5) * 5);
+                    timestamp.setSeconds(0);
+                    timestamp.setMilliseconds(0);
+                    
+                    const timeKey = timestamp.toISOString();
+                    timeGroups[timeKey] = (timeGroups[timeKey] || 0) + 1;
+                });
+                
+                // Sort time keys
+                const sortedTimeKeys = Object.keys(timeGroups).sort();
+                
+                // Update chart data
+                window.webhookCharts.timeChart.data.labels = sortedTimeKeys.map(key => {
+                    const date = new Date(key);
+                    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                });
+                
+                window.webhookCharts.timeChart.data.datasets[0].data = sortedTimeKeys.map(key => timeGroups[key]);
+                window.webhookCharts.timeChart.update();
+            }
+            
+            // Initialize the UI
+            initSettingsForm();
+            
+            // Initialize charts if Chart.js is loaded
+            if (window.Chart) {
+                initCharts();
+            } else {
+                // Load Chart.js dynamically
+                const chartScript = document.createElement('script');
+                chartScript.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+                chartScript.onload = initCharts;
+                document.head.appendChild(chartScript);
+            }
+            
+            // Update charts when tab is switched to Analytics
+            document.querySelector('.tab-button[data-tab="analytics"]').addEventListener('click', function() {
+                if (window.webhookCharts) {
+                    updateCharts();
+                }
+            });
+            
+            // Auto-refresh charts every 30 seconds
+            setInterval(function() {
+                if (document.getElementById('analytics-tab').classList.contains('active') && window.webhookCharts) {
+                    updateCharts();
+                }
+            }, 30000);
+            
+            // Debounce function for performance optimization
+            function debounce(func, wait) {
+                let timeout;
+                return function(...args) {
+                    const context = this;
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(context, args), wait);
+                };
+            }
+            
+            // Create optimized search index
+            let searchIndex = {
+                methods: new Map(),  // Map of method -> Set of entry IDs
+                paths: new Map(),    // Map of path substring -> Set of entry IDs
+                ips: new Map(),      // Map of IP -> Set of entry IDs
+                terms: new Map(),    // Map of search terms -> Set of entry IDs
+                entries: new Map(),  // Map of entry ID -> entry data
+                lastId: 0            // Counter for generating entry IDs
+            };
+            
+            // More efficient search application
+            const debouncedApplyFilters = debounce(applyFilters, 200);
+            
+            // Handle filter input changes with debouncing for better performance
+            document.getElementById('search-text').addEventListener('input', debouncedApplyFilters);
+            document.getElementById('filter-method').addEventListener('change', debouncedApplyFilters);
+            document.getElementById('filter-path').addEventListener('input', debouncedApplyFilters);
+            document.getElementById('filter-ip').addEventListener('input', debouncedApplyFilters);
+            document.getElementById('json-path').addEventListener('input', debouncedApplyFilters);
+            
+            document.getElementById('create-test-btn').addEventListener('click', function() {
+                alert('This feature will be implemented in the next phase.');
+            });
+            
+            document.getElementById('run-tests-btn').addEventListener('click', function() {
+                alert('This feature will be implemented in the next phase.');
+            });
+            
+            document.getElementById('import-tests-btn').addEventListener('click', function() {
+                alert('This feature will be implemented in the next phase.');
+            });
+            
+            document.getElementById('export-tests-btn').addEventListener('click', function() {
+                alert('This feature will be implemented in the next phase.');
+            });
+        });
+        
+        // Initialize tooltips
+        document.addEventListener('DOMContentLoaded', function() {
+            const tooltips = document.querySelectorAll('.tooltip');
+            
+            tooltips.forEach(tooltip => {
+                const tooltipText = tooltip.getAttribute('data-tooltip');
+                const tooltipElement = document.createElement('div');
+                tooltipElement.className = 'tooltip-text';
+                tooltipElement.textContent = tooltipText;
+                
+                tooltip.appendChild(tooltipElement);
+                
+                tooltip.addEventListener('mouseenter', function() {
+                    tooltipElement.classList.add('visible');
+                });
+                
+                tooltip.addEventListener('mouseleave', function() {
+                    tooltipElement.classList.remove('visible');
+                });
+            });
+        });
+    </script>
+    
+    <script>
+        // Helper function to safely sanitize content
+        function escapeHtml(str) {
+            return str
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+            
+            // Format payload for display
+            function formatJson(obj) {
+                try {
+                    return JSON.stringify(obj, null, 2);
+                } catch (e) {
+                    return String(obj);
+                }
+            }
+            
+            // Get method color
+            function getMethodColor(method) {
+                switch (method.toUpperCase()) {
+                    case 'GET': return 'bg-green-100 text-green-800';
+                    case 'POST': return 'bg-blue-100 text-blue-800';
+                    case 'PUT': return 'bg-yellow-100 text-yellow-800';
+                    case 'DELETE': return 'bg-red-100 text-red-800';
+                    case 'PATCH': return 'bg-purple-100 text-purple-800';
+                    default: return 'bg-gray-100 text-gray-800';
+                }
+            }
+            
+            // Connect to WebSocket
+            function connect() {
+                connectionStatus.textContent = 'Connecting...';
+                connectionStatus.className = 'px-2 py-1 rounded text-sm font-semibold bg-yellow-200 text-yellow-800';
+                
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+                
+                ws.onopen = function() {
+                    connectionStatus.textContent = 'Connected';
+                    connectionStatus.className = 'px-2 py-1 rounded text-sm font-semibold bg-green-200 text-green-800';
+                };
+                
+                ws.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        const timestamp = data.timestamp;
+                        const method = data.method || 'UNKNOWN';
+                        const path = data.path || '/';
+                        const clientIp = data.client_ip || 'unknown';
+                        const originalPort = data.original_port || '8080';
+                        
+                        // Create webhook entry element
+                        const entry = document.createElement('div');
+                        entry.className = 'py-3';
+                        
+                        const headerHtml = `
+                            <div class="flex flex-wrap gap-2 items-center mb-2">
+                                <span class="px-2 py-1 rounded font-mono text-sm ${getMethodColor(method)}">${escapeHtml(method)}</span>
+                                <span class="font-mono text-gray-800">${escapeHtml(path)}</span>
+                                <span class="ml-auto text-sm text-gray-500">${formatTimestamp(timestamp)}</span>
+                            </div>
+                            <div class="text-sm text-gray-600 mb-2">
+                                Client IP: <span class="font-mono">${escapeHtml(clientIp)}</span> | 
+                                Original Port: <span class="font-mono">${escapeHtml(originalPort.toString())}</span>
+                            </div>
+                        `;
+                        
+                        // Format payload and headers for display
+                        const payloadHtml = `
+                            <details class="mb-2">
+                                <summary class="cursor-pointer hover:bg-gray-50 p-1 rounded">Payload</summary>
+                                <pre class="bg-gray-50 p-2 rounded mt-1 text-sm font-mono overflow-auto">${escapeHtml(formatJson(data.payload))}</pre>
+                            </details>
+                        `;
+                        
+                        const headersHtml = `
+                            <details>
+                                <summary class="cursor-pointer hover:bg-gray-50 p-1 rounded">Headers</summary>
+                                <pre class="bg-gray-50 p-2 rounded mt-1 text-sm font-mono overflow-auto">${escapeHtml(formatJson(data.headers))}</pre>
+                            </details>
+                        `;
+                        
+                        entry.innerHTML = headerHtml + payloadHtml + headersHtml;
+                        logsElement.prepend(entry);
+                    } catch (error) {
+                        console.error('Error processing webhook data:', error);
+                        
+                        // Display error in the log
+                        const entry = document.createElement('div');
+                        entry.className = 'py-3';
+                        entry.innerHTML = `
+                            <div class="text-red-600">Error processing webhook data</div>
+                            <pre class="bg-gray-50 p-2 rounded mt-1 text-sm font-mono">${escapeHtml(event.data)}</pre>
+                        `;
+                        logsElement.prepend(entry);
+                    }
+                };
+                
+                ws.onclose = function() {
+                    connectionStatus.textContent = 'Disconnected';
+                    connectionStatus.className = 'px-2 py-1 rounded text-sm font-semibold bg-red-200 text-red-800';
+                    
+                    // Reconnect after 2 seconds
+                    setTimeout(connect, 2000);
+                };
+                
+                ws.onerror = function(error) {
+                    console.error('WebSocket error:', error);
+                    connectionStatus.textContent = 'Error';
+                    connectionStatus.className = 'px-2 py-1 rounded text-sm font-semibold bg-red-200 text-red-800';
+                };
+            }
+            
+            // Initial connection
+            connect();
+        });
+    </script>
+</body>
+</html>

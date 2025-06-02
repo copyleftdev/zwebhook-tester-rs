@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  zwebhook-tester:
+    build: .
+    privileged: true          # Allows iptables configuration
+    network_mode: host        # Transparent network interception
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
