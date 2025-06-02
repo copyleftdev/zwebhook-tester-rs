@@ -107,10 +107,6 @@ zwebhook-tester-rs/
     └── storage.rs          # Apache Arrow storage integration
 ```
 
-## 🚩 Security Note
-
-This application uses a privileged Docker container to set up iptables rules. This is secure only in trusted development or testing environments. For production use, consider host-level firewall management.
-
 ## 📝 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
