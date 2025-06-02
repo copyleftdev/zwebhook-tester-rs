@@ -4,7 +4,11 @@ A robust, containerized webhook testing and debugging solution with real-time di
 
 ## 🎥 Demo
 
-See ZWebHook-Tester in action: [YouTube Demo Video](https://youtu.be/C6ry6Bdj8WQ?si=3VgUmGOgpMs_-8zQ)
+See ZWebHook-Tester in action:
+
+[![ZWebHook-Tester Demo](https://img.youtube.com/vi/C6ry6Bdj8WQ/0.jpg)](https://youtu.be/C6ry6Bdj8WQ?si=3VgUmGOgpMs_-8zQ)
+
+*Click the image above to watch the demo video*
 
 ## 📋 Features
 
