@@ -2,6 +2,10 @@
 
 A robust, containerized webhook testing and debugging solution with real-time display, advanced filtering, and analytics capabilities. Built with Rust backend and modular JavaScript frontend.
 
+## 🎥 Demo
+
+See ZWebHook-Tester in action: [YouTube Demo Video](https://youtu.be/C6ry6Bdj8WQ?si=3VgUmGOgpMs_-8zQ)
+
 ## 📋 Features
 
 - **Transparent Interception**: Captures incoming webhook requests on arbitrary ports and paths.
