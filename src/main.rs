@@ -53,8 +53,10 @@ async fn main() -> Result<()> {
         .nest_service("/frontend", get_service(ServeDir::new("frontend")))
         // Maintain compatibility with direct root access for main pages
         .route("/index.html", get_service(ServeDir::new("frontend").append_index_html_on_directories(false)))
-        .route("/logs.html", get_service(ServeDir::new("frontend").append_index_html_on_directories(false)))
+        .route("/logs.html", get(|| async { axum::response::Redirect::to("/logs-modular.html") }))
         .route("/logs-modular.html", get_service(ServeDir::new("frontend").append_index_html_on_directories(false)))
+        // Serve the new logs as the primary implementation
+        .route("/logs-new.html", get_service(ServeDir::new("frontend").append_index_html_on_directories(false)))
         // Add webhook catch-all routes last
         .fallback(routes::handle_webhook)
         .layer(TraceLayer::new_for_http())
