@@ -30,8 +30,21 @@ See ZWebHook-Tester in action:
   - Separate modules for WebSockets, UI, Search, Analytics, and Application logic
   - Dynamic content updates without page refreshes
   - Interactive data visualization with Chart.js
+  - Clean code practices with proper separation of concerns
 - **Storage**: Apache Arrow for compact and efficient webhook storage with fast querying.
 - **Transparent Proxy**: Uses iptables inside a privileged container to redirect ports.
+
+## 🧹 Code Quality & Maintenance
+
+- **Linted Rust Code**: All Rust code passes Clippy lints for best practices and performance
+- **Modular JavaScript**: Frontend code organized into separate modules for maintainability:
+  - `app.js` - Application initialization and coordination
+  - `websocket.js` - WebSocket connection and message handling
+  - `search.js` - Advanced search and filtering functionality
+  - `ui.js` - User interface interactions and components
+  - `analytics.js` - Data visualization and statistics
+- **Version Control**: The project uses Git for version control with feature branches
+- **Clean Architecture**: Clear separation of concerns between backend components
 
 ## 🛠️ Getting Started
 
