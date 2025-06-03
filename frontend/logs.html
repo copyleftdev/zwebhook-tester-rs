@@ -902,7 +902,6 @@
                 
                 // Create cache key
                 const cacheKey = `${searchText}|${methodValue}|${pathValue}|${ipValue}|${fromTime}|${toTime}|${jsonPathExpr}`;
-                
                 // Check cache first for better performance
                 if (searchCache.has(cacheKey)) {
                     console.log('Using cached search results');
@@ -1134,7 +1133,6 @@
                 } catch (e) {
                     console.error('JSONPath error:', e);
                 }
-                
                 // Store in cache (limited size)
                 jsonPathCache.set(cacheKey, result);
                 if (jsonPathCache.size > 500) {
@@ -1848,7 +1846,6 @@
                 const avgSizeEl = document.getElementById('avg-size');
                 const currentAvg = parseFloat(avgSizeEl.dataset.avg || '0');
                 const currentCount = parseInt(avgSizeEl.dataset.count || '0');
-                
                 const newAvg = (currentAvg * currentCount + payloadSize) / (currentCount + 1);
                 avgSizeEl.textContent = Math.round(newAvg) + ' bytes';
                 avgSizeEl.dataset.avg = newAvg;
