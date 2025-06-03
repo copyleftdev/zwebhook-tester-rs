@@ -22,6 +22,16 @@ function connectWebSocket() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws`;
     
+    // Log connection protocol for debugging
+    console.log(`Using ${protocol} protocol based on current page protocol: ${window.location.protocol}`);
+    
+    // If we're on the ondigitalocean.app domain, always force wss protocol
+    if (window.location.host.includes('ondigitalocean.app')) {
+        const forcedWsUrl = `wss://${window.location.host}/ws`;
+        console.log(`Deployment on DigitalOcean detected, forcing secure WebSocket: ${forcedWsUrl}`);
+        return new WebSocket(forcedWsUrl);
+    }
+    
     console.log(`Connecting to WebSocket at ${wsUrl}`);
     socket = new WebSocket(wsUrl);
     
