@@ -45,6 +45,7 @@ See ZWebHook-Tester in action:
   - `analytics.js` - Data visualization and statistics
 - **Version Control**: The project uses Git for version control with feature branches
 - **Clean Architecture**: Clear separation of concerns between backend components
+- **Test Utilities**: Includes a load testing script (`test-webhooks.sh`) that uses GNU parallel to send diverse webhook payloads
 
 ## 🛠️ Getting Started
 
